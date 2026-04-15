@@ -67,9 +67,26 @@ export default function RecordAnswerScreen() {
   }, []);
 
   const startRecording = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current) {
+      Alert.alert(
+        'Camera Not Ready',
+        'Please wait for the camera to initialize and try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     
     try {
+      // Check if recordAsync is available (only in development builds, not Expo Go)
+      if (typeof cameraRef.current.recordAsync !== 'function') {
+        Alert.alert(
+          'Development Build Required',
+          'Video recording requires a custom development build or the production App Store/Play Store app.\n\nThis feature does NOT work in Expo Go.\n\nPlease use EAS Build to create a development build, or wait for the production app release.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+      
       setIsRecording(true);
       setRecordingDuration(0);
       
@@ -80,13 +97,29 @@ export default function RecordAnswerScreen() {
       
       const video = await cameraRef.current.recordAsync({
         maxDuration: 300, // 5 minutes max
-        quality: '720p',
       });
       
-      setRecordedVideo(video.uri);
-    } catch (error) {
+      if (video && video.uri) {
+        setRecordedVideo(video.uri);
+      }
+    } catch (error: any) {
       console.error('Recording error:', error);
-      Alert.alert('Error', 'Failed to record video. Please try again.');
+      
+      // Check for specific Expo Go error - this happens when recordAsync exists but fails
+      const errorMsg = error?.message || '';
+      if (errorMsg.includes('record') || errorMsg.includes('Record') || errorMsg.includes('Calling')) {
+        Alert.alert(
+          'Expo Go Limitation',
+          'Video recording is NOT supported in Expo Go.\n\nThis is a known limitation of Expo SDK 54. The feature will work correctly once the app is:\n\n1. Built with EAS Build (development build)\n2. Published to the App Store/Play Store\n\nPlease test other features for now.',
+          [{ text: 'Got It', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert(
+          'Recording Failed', 
+          'Could not start video recording. If you are using Expo Go, please note that video recording requires a production or development build.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setIsRecording(false);
       if (timerRef.current) {
@@ -143,6 +176,42 @@ export default function RecordAnswerScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Web platform - recording not supported
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <TouchableOpacity 
+          style={[styles.closeButton, { top: insets.top + 10 }]} 
+          onPress={() => router.back()}
+        >
+          <Ionicons name="close" size={28} color={colors.textPrimary} />
+        </TouchableOpacity>
+        
+        <View style={styles.webNoticeContainer}>
+          <Ionicons name="phone-portrait-outline" size={80} color={colors.primary} />
+          <Text style={[styles.permissionTitle, { color: colors.textPrimary, marginTop: 24 }]}>
+            Recording Available on Mobile App
+          </Text>
+          <Text style={[styles.permissionText, { color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 24 }]}>
+            Video recording requires the native mobile app. Please use the iOS or Android app to record video answers for your clients.
+          </Text>
+          
+          <View style={styles.questionPreview}>
+            <Text style={[styles.questionLabel, { color: colors.textMuted }]}>Question from {clientName}:</Text>
+            <Text style={[styles.questionText, { color: colors.textPrimary }]}>"{question}"</Text>
+          </View>
+          
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: colors.primary }]}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -463,11 +532,23 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   questionPreview: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
+    marginTop: SPACING.xl,
     marginBottom: SPACING.lg,
     paddingHorizontal: SPACING.lg,
+    backgroundColor: 'rgba(124, 77, 255, 0.1)',
+    padding: SPACING.md,
+    borderRadius: 12,
+    width: '100%',
+  },
+  questionLabel: {
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  questionText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
+    textAlign: 'center',
   },
   permissionButton: {
     paddingHorizontal: SPACING.xl,
@@ -482,5 +563,42 @@ const styles = StyleSheet.create({
   cancelText: {
     marginTop: SPACING.lg,
     fontSize: 14,
+  },
+  webNoticeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+  },
+  questionLabel: {
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  questionText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
+  },
+  backButton: {
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: SPACING.lg,
+  },
+  backButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
