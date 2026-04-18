@@ -23,9 +23,10 @@ const STEPS = [
   { id: 1, title: 'Personal Info', icon: 'person' },
   { id: 2, title: 'Experience', icon: 'briefcase' },
   { id: 3, title: 'Background', icon: 'school' },
-  { id: 4, title: 'Tax Documents', icon: 'document-text' },
-  { id: 5, title: 'Payment', icon: 'wallet' },
-  { id: 6, title: 'Video Interview', icon: 'videocam' },
+  { id: 4, title: 'Intro Video', icon: 'play-circle' },
+  { id: 5, title: 'Tax Documents', icon: 'document-text' },
+  { id: 6, title: 'Payment', icon: 'wallet' },
+  { id: 7, title: 'Video Interview', icon: 'videocam' },
 ];
 
 // Love & Relationships sub-services
@@ -208,7 +209,13 @@ export default function ApplicationScreen() {
     return null;
   };
 
+  // Step 4 is now Intro Video - no form validation needed, handled by intro-video screen
   const validateStep4 = (): string | null => {
+    // Intro video step - validation is optional, user can skip
+    return null;
+  };
+
+  const validateStep5 = (): string | null => {
     const isUS = formData.country === 'United States';
     
     if (isUS) {
@@ -230,7 +237,7 @@ export default function ApplicationScreen() {
     return null;
   };
 
-  const validateStep5 = (): string | null => {
+  const validateStep6 = (): string | null => {
     if (!formData.paypalEmail.trim()) return 'Please enter your PayPal email address';
     if (!formData.paypalEmail.includes('@')) return 'Please enter a valid PayPal email address';
     return null;
@@ -241,8 +248,9 @@ export default function ApplicationScreen() {
       case 1: return validateStep1();
       case 2: return validateStep2();
       case 3: return validateStep3();
-      case 4: return validateStep4();
-      case 5: return validateStep5();
+      case 4: return validateStep4(); // Intro Video
+      case 5: return validateStep5(); // Tax Documents
+      case 6: return validateStep6(); // Payment
       default: return null;
     }
   };
@@ -255,7 +263,27 @@ export default function ApplicationScreen() {
       return;
     }
 
-    if (currentStep < 6) {
+    // Step 4 is Intro Video - navigate to recording screen
+    if (currentStep === 4) {
+      // Save current data before going to intro video
+      const applicationData = {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        country: formData.country,
+        years_experience: formData.yearsExperience,
+        specialties: formData.specialties,
+        love_services: formData.loveServices,
+        bio: formData.bio,
+        background: formData.background,
+        tools_used: formData.toolsUsed,
+      };
+      await AsyncStorage.setItem('application_data', JSON.stringify(applicationData));
+      router.push('/application/intro-video');
+      return;
+    }
+
+    if (currentStep < 7) {
       setCurrentStep(currentStep + 1);
     } else {
       // Save application data to AsyncStorage before going to video interview
@@ -614,7 +642,61 @@ export default function ApplicationScreen() {
     </View>
   );
 
-  const renderStep4 = () => {
+  // Step 4: Intro Video
+  const renderStep4 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Record Your Intro Video</Text>
+      <Text style={styles.stepSubtitle}>Make a great first impression on potential clients!</Text>
+
+      <View style={styles.introVideoCard}>
+        <View style={styles.introVideoIcon}>
+          <Ionicons name="videocam" size={48} color={COLORS.primary} />
+        </View>
+        
+        <Text style={styles.introVideoTitle}>Why Record an Intro?</Text>
+        
+        <View style={styles.introVideoBenefits}>
+          <View style={styles.benefitItem}>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+            <Text style={styles.benefitText}>3x more client bookings</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+            <Text style={styles.benefitText}>Build trust before the reading</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+            <Text style={styles.benefitText}>Show your personality & energy</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+            <Text style={styles.benefitText}>Stand out from other advisors</Text>
+          </View>
+        </View>
+
+        <View style={styles.introVideoTips}>
+          <Text style={styles.tipsHeader}>Tips for a Great Intro:</Text>
+          <Text style={styles.tipText}>• Introduce yourself warmly</Text>
+          <Text style={styles.tipText}>• Share your special gifts & abilities</Text>
+          <Text style={styles.tipText}>• Explain how you can help clients</Text>
+          <Text style={styles.tipText}>• Be authentic & inviting</Text>
+          <Text style={styles.tipText}>• Keep it under 1 minute!</Text>
+        </View>
+
+        <View style={styles.durationBadge}>
+          <Ionicons name="time-outline" size={16} color={COLORS.warning} />
+          <Text style={styles.durationText}>Max 60 seconds</Text>
+        </View>
+      </View>
+
+      <Text style={styles.skipNote}>
+        You can skip this step, but profiles with intro videos get significantly more bookings!
+      </Text>
+    </View>
+  );
+
+  // Step 5: Tax Documents (previously Step 4)
+  const renderStep5 = () => {
     const isUS = formData.country === 'United States';
     
     if (isUS) {
@@ -893,7 +975,8 @@ export default function ApplicationScreen() {
     }
   };
 
-  const renderStep5 = () => (
+  // Step 6: Payment (previously Step 5)
+  const renderStep6 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Payment Method</Text>
       <Text style={styles.stepSubtitle}>How would you like to receive payments?</Text>
@@ -932,7 +1015,8 @@ export default function ApplicationScreen() {
     </View>
   );
 
-  const renderStep6 = () => (
+  // Step 7: Video Interview (previously Step 6)
+  const renderStep7 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Video Interview</Text>
       <Text style={styles.stepSubtitle}>Answer a sample client question (5 min max)</Text>
@@ -1025,6 +1109,7 @@ export default function ApplicationScreen() {
         {currentStep === 4 && renderStep4()}
         {currentStep === 5 && renderStep5()}
         {currentStep === 6 && renderStep6()}
+        {currentStep === 7 && renderStep7()}
       </ScrollView>
 
       {/* Footer */}
@@ -1035,9 +1120,9 @@ export default function ApplicationScreen() {
             style={styles.nextGradient}
           >
             <Text style={styles.nextText}>
-              {currentStep === 6 ? 'Record Video' : 'Continue'}
+              {currentStep === 4 ? 'Record Intro Video' : currentStep === 7 ? 'Record Interview' : 'Continue'}
             </Text>
-            <Ionicons name={currentStep === 6 ? 'videocam' : 'arrow-forward'} size={20} color="#FFF" />
+            <Ionicons name={currentStep === 4 || currentStep === 7 ? 'videocam' : 'arrow-forward'} size={20} color="#FFF" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -1672,5 +1757,81 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textPrimary,
     lineHeight: 18,
+  },
+  // Intro Video Step Styles
+  introVideoCard: {
+    backgroundColor: COLORS.backgroundElevated,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    alignItems: 'center',
+    marginTop: SPACING.md,
+  },
+  introVideoIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  introVideoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+  },
+  introVideoBenefits: {
+    width: '100%',
+    marginBottom: SPACING.lg,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  benefitText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  introVideoTips: {
+    width: '100%',
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  tipsHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+  tipText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.warning + '20',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: 20,
+    gap: SPACING.xs,
+  },
+  durationText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.warning,
+  },
+  skipNote: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SPACING.md,
+    fontStyle: 'italic',
   },
 });
