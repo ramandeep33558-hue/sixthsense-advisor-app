@@ -178,7 +178,83 @@ export default function ApplicationScreen() {
     }));
   };
 
+  // Validation functions for each step
+  const validateStep1 = (): string | null => {
+    if (!formData.fullName.trim()) return 'Please enter your full legal name';
+    if (!formData.email.trim()) return 'Please enter your email address';
+    if (!formData.email.includes('@')) return 'Please enter a valid email address';
+    if (!formData.phone.trim()) return 'Please enter your phone number';
+    if (!formData.country) return 'Please select your country of residence';
+    return null;
+  };
+
+  const validateStep2 = (): string | null => {
+    if (!formData.yearsExperience.trim()) return 'Please enter your years of experience';
+    if (formData.specialties.length === 0) return 'Please select at least one specialty';
+    if (formData.specialties.includes('Love & Relationships') && formData.loveServices.length === 0) {
+      return 'Please select at least one Love & Relationship service';
+    }
+    if (!formData.bio.trim()) return 'Please write about yourself';
+    if (countWords(formData.bio) < 20) return 'Please write at least 20 words about yourself';
+    if (countWords(formData.bio) > MAX_BIO_WORDS) return `Bio must be ${MAX_BIO_WORDS} words or less`;
+    return null;
+  };
+
+  const validateStep3 = (): string | null => {
+    if (formData.toolsUsed.length === 0) return 'Please select at least one tool you use';
+    if (!formData.background.trim()) return 'Please write about your psychic background';
+    if (countWords(formData.background) < 30) return 'Please write at least 30 words about your background';
+    if (countWords(formData.background) > MAX_BACKGROUND_WORDS) return `Background must be ${MAX_BACKGROUND_WORDS} words or less`;
+    return null;
+  };
+
+  const validateStep4 = (): string | null => {
+    const isUS = formData.country === 'United States';
+    
+    if (isUS) {
+      // W-9 Validation
+      if (!formData.w9Name.trim()) return 'Please enter your legal name for tax purposes';
+      if (!formData.w9TaxClassification) return 'Please select your federal tax classification';
+      if (!formData.w9Address.trim()) return 'Please enter your address';
+      if (!formData.w9CityStateZip.trim()) return 'Please enter your city, state, and ZIP code';
+      if (!formData.w9TIN.trim()) return 'Please enter your Social Security Number or EIN';
+      if (!formData.w9Signature) return 'Please certify the information by checking the signature box';
+    } else {
+      // W-8BEN Validation
+      if (!formData.w8Name.trim()) return 'Please enter your legal name';
+      if (!formData.w8CountryOfCitizenship.trim()) return 'Please enter your country of citizenship';
+      if (!formData.w8PermanentAddress.trim()) return 'Please enter your permanent address';
+      if (!formData.w8DateOfBirth.trim()) return 'Please enter your date of birth';
+      if (!formData.w8Signature) return 'Please certify the information by checking the signature box';
+    }
+    return null;
+  };
+
+  const validateStep5 = (): string | null => {
+    if (!formData.paypalEmail.trim()) return 'Please enter your PayPal email address';
+    if (!formData.paypalEmail.includes('@')) return 'Please enter a valid PayPal email address';
+    return null;
+  };
+
+  const validateCurrentStep = (): string | null => {
+    switch (currentStep) {
+      case 1: return validateStep1();
+      case 2: return validateStep2();
+      case 3: return validateStep3();
+      case 4: return validateStep4();
+      case 5: return validateStep5();
+      default: return null;
+    }
+  };
+
   const handleNext = async () => {
+    // Validate current step before proceeding
+    const validationError = validateCurrentStep();
+    if (validationError) {
+      Alert.alert('Required Fields', validationError);
+      return;
+    }
+
     if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -251,7 +327,7 @@ export default function ApplicationScreen() {
       <Text style={styles.stepSubtitle}>Tell us about yourself</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Full Legal Name</Text>
+        <Text style={styles.inputLabel}>Full Legal Name <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="Enter your full name"
@@ -262,7 +338,7 @@ export default function ApplicationScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Email Address</Text>
+        <Text style={styles.inputLabel}>Email Address <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="Enter your email"
@@ -274,7 +350,7 @@ export default function ApplicationScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Phone Number</Text>
+        <Text style={styles.inputLabel}>Phone Number <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="Enter your phone"
@@ -286,7 +362,7 @@ export default function ApplicationScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Country of Residence</Text>
+        <Text style={styles.inputLabel}>Country of Residence <Text style={styles.required}>*</Text></Text>
         <Text style={styles.inputHint}>Select your country for tax purposes</Text>
         <TouchableOpacity 
           style={styles.countrySelector}
@@ -395,7 +471,7 @@ export default function ApplicationScreen() {
       <Text style={styles.stepSubtitle}>Share your psychic abilities and specialties</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Years of Experience</Text>
+        <Text style={styles.inputLabel}>Years of Experience <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="e.g., 5"
@@ -407,8 +483,8 @@ export default function ApplicationScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Main Specialties</Text>
-        <Text style={styles.inputHint}>Select all that apply</Text>
+        <Text style={styles.inputLabel}>Main Specialties <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.inputHint}>Select all that apply (at least one required)</Text>
         <View style={styles.specialtiesGrid}>
           {specialtiesList.map((specialty) => (
             <TouchableOpacity
@@ -433,8 +509,8 @@ export default function ApplicationScreen() {
       {/* Love & Relationships Sub-services */}
       {formData.specialties.includes('Love & Relationships') && (
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Love & Relationship Services</Text>
-          <Text style={styles.inputHint}>Select specific services you offer</Text>
+          <Text style={styles.inputLabel}>Love & Relationship Services <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.inputHint}>Select specific services you offer (at least one required)</Text>
           <View style={styles.specialtiesGrid}>
             {loveServices.map((service) => (
               <TouchableOpacity
@@ -459,7 +535,7 @@ export default function ApplicationScreen() {
 
       <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
-          <Text style={styles.inputLabel}>About You</Text>
+          <Text style={styles.inputLabel}>About You <Text style={styles.required}>*</Text></Text>
           <Text style={[
             styles.wordCount,
             countWords(formData.bio) > MAX_BIO_WORDS && styles.wordCountError
@@ -468,7 +544,7 @@ export default function ApplicationScreen() {
           </Text>
         </View>
         <Text style={styles.inputHint}>
-          Tell clients about your gift and how you can help them. Be descriptive and engaging.
+          Tell clients about your gift and how you can help them. (Min 20 words)
         </Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -489,8 +565,8 @@ export default function ApplicationScreen() {
       <Text style={styles.stepSubtitle}>Tell us about your psychic journey and tools</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Tools You Use</Text>
-        <Text style={styles.inputHint}>You can use tools during your readings. Select what you work with:</Text>
+        <Text style={styles.inputLabel}>Tools You Use <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.inputHint}>Select what you work with (at least one required)</Text>
         <View style={styles.specialtiesGrid}>
           {toolsList.map((tool) => (
             <TouchableOpacity
@@ -514,7 +590,7 @@ export default function ApplicationScreen() {
 
       <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
-          <Text style={styles.inputLabel}>Your Psychic Background</Text>
+          <Text style={styles.inputLabel}>Your Psychic Background <Text style={styles.required}>*</Text></Text>
           <Text style={[
             styles.wordCount,
             countWords(formData.background) > MAX_BACKGROUND_WORDS && styles.wordCountError
@@ -523,7 +599,7 @@ export default function ApplicationScreen() {
           </Text>
         </View>
         <Text style={styles.inputHint}>
-          Share your journey - how did you discover your gift? Any training or mentorship?
+          Share your journey - how did you discover your gift? (Min 30 words)
         </Text>
         <TextInput
           style={[styles.input, styles.textAreaLarge]}
@@ -836,7 +912,7 @@ export default function ApplicationScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>PayPal Email Address</Text>
+        <Text style={styles.inputLabel}>PayPal Email Address <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="your@paypal-email.com"
@@ -1082,6 +1158,10 @@ const styles = StyleSheet.create({
   },
   wordCountError: {
     color: COLORS.error,
+  },
+  required: {
+    color: COLORS.error,
+    fontWeight: '400',
   },
   input: {
     backgroundColor: COLORS.backgroundCard,

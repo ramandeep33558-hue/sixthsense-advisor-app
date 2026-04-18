@@ -13,8 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { Video, ResizeMode } from 'expo-av';
-import { SPACING } from '../../src/constants/theme';
-import { useTheme } from '../../src/context/ThemeContext';
+import { SPACING } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
