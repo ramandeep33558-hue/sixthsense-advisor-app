@@ -114,12 +114,13 @@ export default function IntroVideoScreen() {
         }
       }
 
-      // Test mode fallback
-      setTimeout(() => {
-        if (!recordedVideo && timeElapsed > 0) {
-          setRecordedVideo('test_mode_intro_video');
-        }
-      }, 500);
+      // Test mode fallback - always set a placeholder if we recorded something
+      // This ensures Retake and Submit buttons appear in Expo Go
+      if (timeElapsed > 0) {
+        setTimeout(() => {
+          setRecordedVideo(prev => prev || 'test_mode_intro_video');
+        }, 300);
+      }
     }
   };
 
