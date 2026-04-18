@@ -80,10 +80,17 @@ export default function RecordAnswerScreen() {
       // Check if recordAsync is available (only in development builds, not Expo Go)
       if (typeof cameraRef.current.recordAsync !== 'function') {
         Alert.alert(
-          'Development Build Required',
-          'Video recording requires a custom development build or the production App Store/Play Store app.\n\nThis feature does NOT work in Expo Go.\n\nPlease use EAS Build to create a development build, or wait for the production app release.',
-          [{ text: 'OK', onPress: () => router.back() }]
+          'Test Mode',
+          'Video recording is not available in Expo Go. Running in test mode - tap stop when ready to test the submit flow.',
+          [{ text: 'OK' }]
         );
+        setIsRecording(true);
+        setRecordingDuration(0);
+        
+        // Start timer for test mode
+        timerRef.current = setInterval(() => {
+          setRecordingDuration(prev => prev + 1);
+        }, 1000);
         return;
       }
       
@@ -108,11 +115,7 @@ export default function RecordAnswerScreen() {
       // Check for specific Expo Go error - this happens when recordAsync exists but fails
       const errorMsg = error?.message || '';
       if (errorMsg.includes('record') || errorMsg.includes('Record') || errorMsg.includes('Calling')) {
-        Alert.alert(
-          'Expo Go Limitation',
-          'Video recording is NOT supported in Expo Go.\n\nThis is a known limitation of Expo SDK 54. The feature will work correctly once the app is:\n\n1. Built with EAS Build (development build)\n2. Published to the App Store/Play Store\n\nPlease test other features for now.',
-          [{ text: 'Got It', onPress: () => router.back() }]
-        );
+        // Don't show error here - allow test mode fallback in stopRecording
       } else {
         Alert.alert(
           'Recording Failed', 
@@ -120,17 +123,35 @@ export default function RecordAnswerScreen() {
           [{ text: 'OK' }]
         );
       }
-    } finally {
-      setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
     }
   };
 
   const stopRecording = () => {
-    if (cameraRef.current && isRecording) {
-      cameraRef.current.stopRecording();
+    if (isRecording) {
+      // Stop the timer first
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      setIsRecording(false);
+      
+      // Try to stop actual recording if camera supports it
+      if (cameraRef.current && typeof cameraRef.current.stopRecording === 'function') {
+        try {
+          cameraRef.current.stopRecording();
+        } catch (e) {
+          // Ignore errors when stopping
+        }
+      }
+      
+      // If no video was recorded (Expo Go limitation), set a placeholder so UI shows buttons
+      // This allows testing the retake/submit flow
+      setTimeout(() => {
+        if (!recordedVideo && recordingDuration > 0) {
+          setRecordedVideo('test_mode_video');
+        }
+      }, 500);
     }
   };
 
